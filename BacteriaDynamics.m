@@ -1,0 +1,52 @@
+% BacteriaDynamics
+% Parameters
+u_max = 1.7;
+K_B0 = 1e10; 
+B_0 = 1e7;   
+
+alpha = 0.05;    
+p_max = 10;      
+delta = 0.1;
+tspan = [0 50];
+
+% Original model (constant K_B)
+[t, B] = ode45(@(t, B) odefcn_constant_KB(t, B, u_max, K_B0, delta), tspan, B_0);
+
+% Dynamic model: K_B changes with time as CaCO3 builds up
+[t1, B1] = ode45(@(t, B) odefcn_dynamic_KB(t, B, u_max, K_B0, delta, alpha, p_max, tspan(end)), tspan, B_0);
+
+% Plotting
+figure
+plot(t, B, 'r', 'LineWidth', 2); hold on;
+plot(t1, B1, 'b--', 'LineWidth', 2);
+xlabel("Time (h)")
+ylabel("Number of bacteria (cells/mL)")
+legend("Constant K_B", "Dynamic K_B")
+title("Bacteria Population with Static vs Dynamic Carrying Capacity")
+grid on;
+
+figure
+plot(t, B, 'r', 'LineWidth', 2)
+ylabel("Number of bacteria (cells/mL)")
+xlabel("Time (h)")
+title("Bacteria Population with Static Carrying Capacity")
+grid on;
+
+figure
+plot(t1, B1, 'r', 'LineWidth', 2)
+ylabel("Number of bacteria (cells/mL)")
+title("Bacteria Population with Dynamic Carrying Capacity")
+xlabel("Time (h)")
+grid on;
+
+% Static K_B function
+function dbdt = odefcn_constant_KB(t, B, u_max, K_B, delta)
+    dbdt = u_max * B * (1 - B / K_B) - delta * B;
+end
+
+% Dynamic K_B function based on CaCO3 build-up
+function dbdt = odefcn_dynamic_KB(t, B, u_max, K_B0, delta, alpha, p_max, t_max)
+    P_CaCO3 = p_max * (1.2*t / t_max);         
+    K_B = K_B0 * (1 - alpha * (P_CaCO3 / p_max));  
+    dbdt = u_max * B * (1 - B / K_B) - delta * B;
+end

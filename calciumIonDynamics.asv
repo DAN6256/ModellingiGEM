@@ -1,0 +1,143 @@
+%% PARAMETERS AND INITIAL CONDITIONS
+
+% General simulation parameters
+tspan = [0 50];
+
+% Biological parameters
+u_max = 1.7;             % Max bacterial growth rate (1/h)
+delta = 0.1;             % Bacterial death rate (1/h)
+K_B0 = 1e10;             % Initial carrying capacity (cells/mL)
+B_0 = 1e7;               % Initial bacterial concentration (cells/mL)
+
+% Urease dynamics
+initial_urease = 0;      % Initial urease amount
+alpha = 0.05;            % Urease production rate (1/h)
+beta = 0.0000000005;     % Urease degradation rate (1/h)
+u_alpha = 0.000000001;   % Unused (can be removed)
+
+
+
+% Urea hydrolysis
+urea_0 = 10000;          % Initial urea concentration (mM)
+urea_broken_0 = 0;       % Initial hydrolyzed urea (mM)
+K_m = 0.3;               % Michaelis constant (mM)
+kcat = 1;               % Turnover rate (1/h)
+
+% Carbonate formation
+kpptn = 0.01;            % Precipitation rate constant
+Ca = 1.0;                % Calcium concentration (mM)
+yCO3 = 1.0;              % Yield of carbonate per urea hydrolyzed
+
+% Dynamic carrying capacity
+p_max = 10;              % Maximum CaCO3 accumulation
+
+% Initial conditions for full model: [Bacteria, Urease, Urea, Urea broken, Carbonate]
+%U0 = [B_0; initial_urease; urea_0; urea_broken_0; 0];
+carbonate_0 = 0;
+Ca2_0 = Ca ;
+CaCO3_0 = 0;
+
+
+%% SOLVERS AND PLOTTING
+
+% 1. Constant Carrying Capacity
+%[t, B] = ode45(@(t, B) odefcn_constant_KB(t, B, u_max, K_B0, delta), tspan, B_0);
+
+% 2. Dynamic Carrying Capacity
+%[t1, B1] = ode45(@(t, B) odefcn_dynamic_KB(t, B, u_max, K_B0, delta, alpha, p_max, tspan(end)), tspan, B_0);
+
+% 3. Urease Dynamics
+%[t2, B2] = ode45(@(t, U) odeUrease(t, U, K_B0, delta, u_max, u_alpha, beta), tspan, [B_0; initial_urease]);
+
+% 4. Carbonate Formation Model
+%[t3, Y] = ode45(@(t, U) odeCarbonateFormation(t, U, K_B0, delta, u_max, u_alpha, beta, K_m, kcat, yCO3, kpptn, Ca), tspan, U0);
+
+% Plot 1: Static vs Dynamic Carrying Capacity
+%figure
+%plot(t, B, 'r', 'LineWidth', 2); hold on;
+%plot(t1, B1, 'b--', 'LineWidth', 2);
+%xlabel("Time (h)"); ylabel("Bacteria (cells/mL)");
+%title("Bacteria: Static vs Dynamic Carrying Capacity");
+%legend("Constant K_B", "Dynamic K_B");
+%grid on;
+
+% Plot 2: Urease Dynamics
+%figure
+%yyaxis left
+%plot(t2, B2(:,1), 'b--', 'LineWidth', 2); ylabel("Bacteria (cells/mL)");
+%yyaxis right
+%plot(t2, B2(:,2), 'r', 'LineWidth', 2); ylabel("Urease Amount");
+%xlabel("Time (h)"); title("Bacteria and Urease Dynamics");
+%legend("Bacteria", "Urease"); grid on;
+
+% Plot 3: Urea Hydrolysis
+%figure
+%plot(t3, Y(:,3), 'g', 'LineWidth', 2); hold on;
+%plot(t3, Y(:,4), 'm', 'LineWidth', 2);
+%xlabel('Time (h)'); ylabel('Concentration (mM)');
+%title('Urea Hydrolysis');
+%legend('Urea Remaining', 'Urea Broken Down'); grid on;
+%ylim([0 10000]);
+%xlim([0 50])
+
+% Plot 4: Carbonate Formation
+%figure
+%plot(t3, Y(:,5), 'b', 'LineWidth', 2);
+%xlabel('Time (h)'); ylabel('Carbonate (mM)');
+%title('Carbonate Formation via Urea Hydrolysis');
+%grid on;
+
+U0 = [B_0; initial_urease; urea_0; carbonate_0; Ca2_0,CaCO3_0];
+[t, Y] = ode45(@(t, U) odeCarbonateFormation(t, U, K_B0, delta, u_max, u_alpha, beta, K_m, kcat, yCO3, kpptn, Ca), tspan, U0);
+figure
+yyaxis right
+plot(t,Y(:,5),LineWidth=2); hold on;
+plot(t,Y(:,6), LineWidth=2);hold on;
+xlabel("Time(hours");
+ylabel("Amount of Ca^{2+} and CaCO_3 (mM?)");
+plot(t,Y(:,1),LineWidth=2);
+ylabel("Number of cells(cells/mL)")
+title("")
+
+
+
+
+
+%% MODEL FUNCTIONS
+
+function dbdt = odefcn_constant_KB(t, B, u_max, K_B, delta)
+    dbdt = u_max * B * (1 - B / K_B) - delta * B;
+end
+
+function dbdt = odefcn_dynamic_KB(t, B, u_max, K_B0, delta, alpha, p_max, t_max)
+    P_CaCO3 = p_max * (1.2 * t / t_max);
+    K_B = K_B0 * (1 - alpha * (P_CaCO3 / p_max));
+    dbdt = u_max * B * (1 - B / K_B) - delta * B;
+end
+
+function dudt = odeUrease(t, U, K_B, delta, u_max, alpha, beta)
+    B = U(1);
+    urease = U(2);
+
+    dudt = zeros(2,1);
+    dudt(1) = u_max * B * (1 - B / K_B) - delta * B;
+    dudt(2) = (alpha * B) - (beta * urease);
+end
+
+function dUdt = odeCarbonateFormation(t, U, K_B, delta, u_max, alpha, beta, K_m, kcat, yCO3, kpptn)
+    B = U(1); E = U(2); S = U(3); C = U(4); Ca = U(5); CaCO3 = U(6) ;
+
+    dUdt = zeros(6,1);
+    dUdt(1) = u_max * B * (1 - B / K_B) - delta * B;           % Bacteria
+    dUdt(2) = (alpha * B) - (beta * E);                            % Urease
+    v = (kcat * E * S) / (K_m + S);                            % Michaelis-Menten rate
+    dUdt(3) = -v;                                              % Urea consumed
+    dUdt(4) = yCO3 * abs(v) - kpptn * C * Ca;                  % Carbonate formation
+    dUdt(5) = - kpptn * C * Ca;                                % Ca2+ formation
+    dUdt(6) = kpptn * C * Ca;                                  %CaCO3
+
+end
+
+
+
+

@@ -41,12 +41,12 @@ CaCO3_0 = 0;
 U0 = [B_0; initial_urease; urea_0; carbonate_0; Ca2_0; CaCO3_0];
 [t, Y] = ode45(@(t, U) odeCarbonateFormation(t, U, K_B0, delta, u_max, u_alpha, beta, K_m, kcat, yCO3, kpptn), tspan, U0);
 figure
-yyaxis right
+yyaxis left
 plot(t,Y(:,5),LineWidth=2); hold on;
 plot(t,Y(:,6), LineWidth=2);hold on;
 xlabel("Time(hours");
 ylabel("Amount of Ca^{2+} and CaCO_3 (mM?)");
-yyaxis left
+yyaxis right
 plot(t,Y(:,1),LineWidth=2);
 ylabel("Number of cells(cells/mL)");
 title("Plot of Bacteria, Calcium Ions and Calcium Carbonate Dynamics");

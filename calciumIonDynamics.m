@@ -12,7 +12,7 @@ p_max = 1;
 
 % Urease dynamics
 initial_urease = 0;      % Initial urease amount
-alpha = 2;            % KB depletion rate
+alpha = 2;               % KB depletion rate
 beta = 0.0000000005;     % Urease degradation rate (1/h)
 u_alpha = 0.000000001;   % alpha for urease dynamics
 
@@ -22,7 +22,7 @@ u_alpha = 0.000000001;   % alpha for urease dynamics
 urea_0 = 10000;          % Initial urea concentration (mM)
 urea_broken_0 = 0;       % Initial hydrolyzed urea (mM)
 K_m = 0.3;               % Michaelis constant (mM)
-kcat = 1;               % Turnover rate (1/h)
+kcat = 1;                % Turnover rate (1/h)
 
 % Carbonate formation
 kpptn = 0.01;            % Precipitation rate constant
